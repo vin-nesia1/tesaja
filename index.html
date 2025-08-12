@@ -21,8 +21,42 @@
     <meta name="twitter:title" content="Pet Wallpaper Paradise - Free HD Pet Wallpapers">
     <meta name="twitter:description" content="Download 10,000+ FREE HD pet wallpapers! Cute cats, dogs, puppies in 4K quality.">
     
-    <link rel="preconnect" href="https://api.thecatapi.com">
-    <link rel="preconnect" href="https://api.thedogapi.com">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Pet Wallpaper Paradise",
+        "url": "https://catdog.vinnesia.my.id",
+        "description": "Download FREE HD pet wallpapers! 10,000+ cute cat wallpapers, dog wallpapers, and puppy backgrounds. 4K quality, mobile-friendly.",
+        "keywords": "pet wallpapers, cat wallpapers, dog wallpapers, cute pet backgrounds, free HD wallpapers, puppy wallpapers, kitten wallpapers, 4K pet images",
+        "author": {
+            "@type": "Organization",
+            "name": "Pet Wallpaper Paradise"
+        },
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://catdog.vinnesia.my.id/?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+        },
+        "mainEntity": {
+            "@type": "ImageGallery",
+            "name": "Pet Wallpaper Collection",
+            "description": "Premium collection of HD pet wallpapers featuring cats, dogs, puppies, and kittens"
+        },
+        "sameAs": [
+            "https://www.facebook.com/petwallpaperparadise",
+            "https://twitter.com/petwallpapers",
+            "https://www.instagram.com/petwallpaperparadise"
+        ]
+    }
+    </script>
+    
+    <link rel="preload" as="fetch" href="https://api.thecatapi.com/v1/images/search?limit=12&page=0" crossorigin="anonymous">
+    <link rel="preload" as="fetch" href="https://api.thedogapi.com/v1/images/search?limit=12&page=0" crossorigin="anonymous">
+    <link rel="preload" as="image" href="https://catdog.vinnesia.my.id/og-image.jpg">
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='grad1' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23FF6B6B;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%234ECDC4;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='45' fill='url(%23grad1)'/%3E%3Cpath d='M35 40c-3 0-5 2-5 5s2 5 5 5 5-2 5-5-2-5-5-5zm30 0c-3 0-5 2-5 5s2 5 5 5 5-2 5-5-2-5-5-5z' fill='white'/%3E%3Cpath d='M50 55c-8 0-12 4-12 8v2c0 2 2 4 4 4h16c2 0 4-2 4-4v-2c0-4-4-8-12-8z' fill='white'/%3E%3C/svg%3E">
     
@@ -1239,28 +1273,478 @@
     </footer>
     <script>
         // Global State
-        let state = { cats: [], dogs: [], favorites: [], currentFilter: 'all', currentModal: null, loading: false, page: { cats: 0, dogs: 0 }, shareMenuOpen: false };
+        let state = {
+            cats: [],
+            dogs: [],
+            favorites: [],
+            currentFilter: 'all',
+            currentModal: null,
+            loading: false,
+            page: {
+                cats: 0,
+                dogs: 0
+            },
+            shareMenuOpen: false
+        };
+
         // Utility Functions
         const $ = (selector) => document.querySelector(selector);
         const $$ = (selector) => document.querySelectorAll(selector);
-        const debounce = (func, wait) => { let timeout; return function executedFunction(...args) { const later = () => { clearTimeout(timeout); func(...args); }; clearTimeout(timeout); timeout = setTimeout(later, wait); }; };
+
+        const debounce = (func, wait) => {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        };
+
         // Accessibility helper for screen reader announcements
-        function announceToScreenReader(message) { const announcements = $('#announcements'); if (announcements) { announcements.textContent = message; announcements.focus(); setTimeout(() => { announcements.textContent = ''; }, 1000); } }
+        function announceToScreenReader(message) {
+            const announcements = $('#announcements');
+            if (announcements) {
+                announcements.textContent = message;
+                announcements.focus();
+                setTimeout(() => {
+                    announcements.textContent = '';
+                }, 1000);
+            }
+        }
+        
         // Initialize favorites from memory storage (fallback for localStorage)
-        function initializeFavorites() { try { const savedFavorites = localStorage?.getItem?.('favorites'); if (savedFavorites) { state.favorites = JSON.parse(savedFavorites); } } catch (error) { console.log('Using memory storage for favorites'); state.favorites = []; } }
+        function initializeFavorites() {
+            try {
+                const savedFavorites = localStorage?.getItem?.('favorites');
+                if (savedFavorites) {
+                    state.favorites = JSON.parse(savedFavorites);
+                }
+            } catch (error) {
+                console.log('Using memory storage for favorites');
+                state.favorites = [];
+            }
+        }
+
         // Save favorites safely
-        function saveFavorites() { try { localStorage?.setItem?.('favorites', JSON.stringify(state.favorites)); } catch (error) { // Silently fail if localStorage is not available } }
+        function saveFavorites() {
+            try {
+                localStorage?.setItem?.('favorites', JSON.stringify(state.favorites));
+            } catch (error) {
+                // Silently fail if localStorage is not available
+            }
+        }
+
         // API Configuration
-        const API = { cats: 'https://api.thecatapi.com/v1/images/search', dogs: 'https://api.thedogapi.com/v1/images/search' };
+        const API = {
+            cats: 'https://api.thecatapi.com/v1/images/search',
+            dogs: 'https://api.thedogapi.com/v1/images/search'
+        };
+
         // Generate unique ID for images
         const generateId = () => Math.random().toString(36).substr(2, 9);
+
         // Generate random titles for wallpapers
-        function generateTitle(type) { const catTitles = [ 'Adorable Kitten', 'Fluffy Cat', 'Cute Tabby', 'Sleepy Cat', 'Playful Kitty', 'Beautiful Persian', 'Curious Cat', 'Cozy Cat', 'Elegant Feline', 'Sweet Kitten' ]; const dogTitles = [ 'Happy Puppy', 'Golden Retriever', 'Cute Dog', 'Playful Pup', 'Loyal Friend', 'Beautiful Dog', 'Adorable Puppy', 'Friendly Dog', 'Sweet Pup', 'Majestic Dog' ]; const titles = type === 'cats' ? catTitles : dogTitles; return titles[Math.floor(Math.random() * titles.length)]; }
+        function generateTitle(type) {
+            const catTitles = ['Adorable Kitten', 'Fluffy Cat', 'Cute Tabby', 'Sleepy Cat', 'Playful Kitty', 'Beautiful Persian', 'Curious Cat', 'Cozy Cat', 'Elegant Feline', 'Sweet Kitten'];
+            const dogTitles = ['Happy Puppy', 'Golden Retriever', 'Cute Dog', 'Playful Pup', 'Loyal Friend', 'Beautiful Dog', 'Adorable Puppy', 'Friendly Dog', 'Sweet Pup', 'Majestic Dog'];
+            const titles = type === 'cats' ? catTitles : dogTitles;
+            return titles[Math.floor(Math.random() * titles.length)];
+        }
+
         // API Functions
-        async function fetchPetImages(type, limit = 12) { try { state.loading = true; updateLoadingState(); const response = await fetch(`${API[type]}?limit=${limit}&page=${state.page[type]}`); if (!response.ok) throw new Error('Failed to fetch images'); const data = await response.json(); const processedData = data.map(item => ({ id: generateId(), url: item.url, type: type.slice(0, -1), title: generateTitle(type), resolution: '1920x1080', size: '2.5 MB', category: Math.random() > 0.5 ? 'cute' : 'funny', isFavorite: false })); state[type].push(...processedData); state.page[type]++; announceToScreenReader(`${processedData.length} new ${type} wallpapers loaded.`); return processedData; } catch (error) { console.error(`Error fetching ${type}:`, error); showNotification('Failed to load images. Please try again.', 'error'); announceToScreenReader('Failed to load images.'); return []; } finally { state.loading = false; updateLoadingState(); } }
+        async function fetchPetImages(type, limit = 12) {
+            try {
+                state.loading = true;
+                updateLoadingState();
+                const response = await fetch(`${API[type]}?limit=${limit}&page=${state.page[type]}`);
+                if (!response.ok) throw new Error('Failed to fetch images');
+                const data = await response.json();
+                const processedData = data.map(item => ({
+                    id: generateId(),
+                    url: item.url,
+                    type: type.slice(0, -1),
+                    title: generateTitle(type),
+                    resolution: '1920x1080',
+                    size: '2.5 MB',
+                    category: Math.random() > 0.5 ? 'cute' : 'funny',
+                    isFavorite: false
+                }));
+                state[type].push(...processedData);
+                state.page[type]++;
+                announceToScreenReader(`${processedData.length} new ${type} wallpapers loaded.`);
+                return processedData;
+            } catch (error) {
+                console.error(`Error fetching ${type}:`, error);
+                showNotification('Failed to load images. Please try again.', 'error');
+                announceToScreenReader('Failed to load images.');
+                return [];
+            } finally {
+                state.loading = false;
+                updateLoadingState();
+            }
+        }
+
+        async function searchWallpapers(query) {
+            const allWallpapers = [...state.cats, ...state.dogs];
+            const filtered = allWallpapers.filter(item => 
+                item.title.toLowerCase().includes(query.toLowerCase()) || 
+                item.type.toLowerCase().includes(query.toLowerCase()) ||
+                item.category.toLowerCase().includes(query.toLowerCase())
+            );
+            renderGallery(filtered);
+            if (query && filtered.length > 0) {
+                announceToScreenReader(`${filtered.length} wallpapers found for "${query}".`);
+            } else if (query && filtered.length === 0) {
+                announceToScreenReader(`No wallpapers found for "${query}".`);
+            }
+        }
+
         // DOM Creation Functions
-        function createWallpaperCard(item) { const isFav = state.favorites.includes(item.id); return ` <article class="wallpaper-card" data-id="${item.id}" data-type="${item.type}" role="gridcell"> <div class="wallpaper-image"> <img src="${item.url}" alt="${item.title} - ${item.type} wallpaper" loading="lazy"> <button onclick="openModal('${item.id}')" aria-label="Open ${item.title} in full size"> <span class="sr-only">View ${item.title} wallpaper</span> </button> <div class="image-overlay" aria-hidden="true"> <div class="overlay-content"> <div class="wallpaper-title">${item.title}</div> <div class="wallpaper-meta"> <span>📏 ${item.resolution}</span> <span>💾 ${item.size}</span> </div> </div> </div> </div> <div class="wallpaper-info"> <h3 class="wallpaper-title">${item.title}</h3> <div class="wallpaper-meta"> <span>📏 ${item.resolution}</span> <span>💾 ${item.size}</span> </div> <div class="wallpaper-actions"> <button class="btn btn-primary" onclick="downloadWallpaper('${item.id}')" aria-label="Download ${item.title} wallpaper"> <span aria-hidden="true">⬇️</span> Download </button> <button class="btn ${isFav ? 'btn-secondary' : 'btn-outline'}" onclick="toggleFavorite('${item.id}')" id="fav-${item.id}" aria-label="${isFav ? 'Remove from' : 'Add to'} favorites" aria-pressed="${isFav}"> <span aria-hidden="true">${isFav ? '❤️' : '🤍'}</span> ${isFav ? 'Favorited' : 'Add to Favorites'} </button> </div> </div> </article> `}
-        // ... (sisanya dari kode JS Anda, tidak ada perubahan besar)
+        function createWallpaperCard(item) {
+            const isFav = state.favorites.includes(item.id);
+            return `
+                <article class="wallpaper-card" data-id="${item.id}" data-type="${item.type}" role="gridcell">
+                    <div class="wallpaper-image">
+                        <img src="${item.url}" alt="${item.title} - ${item.type} wallpaper" loading="lazy">
+                        <button onclick="openModal('${item.id}')" aria-label="Open ${item.title} in full size">
+                            <span class="sr-only">View ${item.title} wallpaper</span>
+                        </button>
+                        <div class="image-overlay" aria-hidden="true">
+                            <div class="overlay-content">
+                                <div class="wallpaper-title">${item.title}</div>
+                                <div class="wallpaper-meta">
+                                    <span>📏 ${item.resolution}</span>
+                                    <span>💾 ${item.size}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="wallpaper-info">
+                        <h3 class="wallpaper-title">${item.title}</h3>
+                        <div class="wallpaper-meta">
+                            <span>📏 ${item.resolution}</span>
+                            <span>💾 ${item.size}</span>
+                        </div>
+                        <div class="wallpaper-actions">
+                            <button class="btn btn-primary" onclick="downloadWallpaper('${item.id}')" aria-label="Download ${item.title} wallpaper">
+                                <span aria-hidden="true">⬇️</span> Download
+                            </button>
+                            <button class="btn ${isFav ? 'btn-secondary' : 'btn-outline'}" onclick="toggleFavorite('${item.id}')" id="fav-${item.id}" aria-label="${isFav ? 'Remove from' : 'Add to'} favorites" aria-pressed="${isFav}">
+                                <span aria-hidden="true">${isFav ? '❤️' : '🤍'}</span> ${isFav ? 'Favorited' : 'Add to Favorites'}
+                            </button>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function createLoadingCards(count) {
+            let cards = '';
+            for (let i = 0; i < count; i++) {
+                cards += `
+                    <div class="loading-card" aria-hidden="true">
+                        <div class="loading-image"></div>
+                        <div class="loading-content">
+                            <div class="loading-title"></div>
+                            <div class="loading-meta"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            return cards;
+        }
+
+        // DOM Manipulation
+        function renderGallery(items = []) {
+            const catsGallery = $('#cats-gallery');
+            const dogsGallery = $('#dogs-gallery');
+            const catsTitle = $('#cats-title');
+            const dogsTitle = $('#dogs-title');
+            const loadMoreBtn = $('.load-more-btn');
+
+            const cats = items.filter(item => item.type === 'cat');
+            const dogs = items.filter(item => item.type === 'dog');
+            
+            if (state.currentFilter === 'all' || state.currentFilter === 'cats') {
+                catsGallery.innerHTML = cats.map(createWallpaperCard).join('');
+                catsTitle.style.display = 'block';
+                $('#cats-section').style.display = 'block';
+            } else {
+                $('#cats-section').style.display = 'none';
+            }
+
+            if (state.currentFilter === 'all' || state.currentFilter === 'dogs') {
+                dogsGallery.innerHTML = dogs.map(createWallpaperCard).join('');
+                dogsTitle.style.display = 'block';
+                $('#dogs-section').style.display = 'block';
+            } else {
+                $('#dogs-section').style.display = 'none';
+            }
+            
+            loadMoreBtn.style.display = (state.currentFilter === 'all') ? 'block' : 'none';
+        }
+
+        function updateLoadingState() {
+            const catsGallery = $('#cats-gallery');
+            const dogsGallery = $('#dogs-gallery');
+            const loadMoreBtn = $('.load-more-btn');
+
+            if (state.loading) {
+                if (state.currentFilter === 'all' || state.currentFilter === 'cats') {
+                    catsGallery.innerHTML = createLoadingCards(12);
+                    catsGallery.setAttribute('aria-busy', 'true');
+                }
+                if (state.currentFilter === 'all' || state.currentFilter === 'dogs') {
+                    dogsGallery.innerHTML = createLoadingCards(12);
+                    dogsGallery.setAttribute('aria-busy', 'true');
+                }
+                loadMoreBtn.disabled = true;
+            } else {
+                catsGallery.setAttribute('aria-busy', 'false');
+                dogsGallery.setAttribute('aria-busy', 'false');
+                loadMoreBtn.disabled = false;
+                renderGallery(state.currentFilter === 'all' ? [...state.cats, ...state.dogs] : state[state.currentFilter]);
+            }
+        }
+
+        // Event Handlers
+        async function loadInitialWallpapers() {
+            state.loading = true;
+            updateLoadingState();
+            await Promise.all([
+                fetchPetImages('cats', 12),
+                fetchPetImages('dogs', 12)
+            ]);
+            state.loading = false;
+            updateLoadingState();
+        }
+
+        async function loadMoreWallpapers() {
+            if (state.loading) return;
+            state.loading = true;
+            const targetGallery = state.page.cats > state.page.dogs ? 'dogs' : 'cats';
+            const newWallpapers = await fetchPetImages(targetGallery, 12);
+            renderGallery([...state.cats, ...state.dogs]);
+        }
+
+        async function handleFilterClick(event) {
+            const filter = event.currentTarget.dataset.filter;
+            state.currentFilter = filter;
+            $$('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            // Update aria-pressed status
+            $$('.filter-btn').forEach(btn => btn.setAttribute('aria-pressed', 'false'));
+            event.currentTarget.setAttribute('aria-pressed', 'true');
+
+            if (filter === 'all') {
+                renderGallery([...state.cats, ...state.dogs]);
+                await loadInitialWallpapers();
+            } else {
+                const targetType = filter;
+                const targetGallery = $(`#${targetType}-gallery`);
+                const allItems = [...state.cats, ...state.dogs];
+                const filteredItems = allItems.filter(item => item.type === targetType.slice(0, -1));
+                renderGallery(filteredItems);
+                
+                // If no images exist for this filter, load them
+                if (state[targetType].length === 0) {
+                    await fetchPetImages(targetType, 12);
+                    renderGallery(state[targetType]);
+                }
+            }
+        }
+        
+        function openModal(id) {
+            state.currentModal = [...state.cats, ...state.dogs].find(item => item.id === id);
+            if (!state.currentModal) return;
+
+            const modal = $('#image-modal');
+            const modalImage = $('#modal-image');
+            const modalTitle = $('#modal-title');
+            const modalDesc = $('#modal-description');
+            
+            modalImage.src = state.currentModal.url;
+            modalImage.alt = `${state.currentModal.title} - ${state.currentModal.type} wallpaper`;
+            modalTitle.textContent = state.currentModal.title;
+            modalDesc.textContent = `Full size preview of ${state.currentModal.title} wallpaper`;
+
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+            // Move focus to the modal's close button
+            $('.modal-close').focus();
+        }
+
+        function closeModal(event) {
+            // Check if click is on modal background, not content
+            if (event && event.target !== event.currentTarget) return;
+            const modal = $('#image-modal');
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+            state.currentModal = null;
+            // Return focus to the button that opened the modal
+            // (You'd need to save a reference to the opening button)
+        }
+        
+        function downloadImage() {
+            if (!state.currentModal) return;
+            const link = document.createElement('a');
+            link.href = state.currentModal.url;
+            link.download = `pet-wallpaper-${state.currentModal.type}-${state.currentModal.id}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showNotification('Download started!', 'success');
+        }
+
+        function toggleFavorite(id) {
+            const index = state.favorites.indexOf(id);
+            const favBtn = $(`#fav-${id}`);
+            if (index > -1) {
+                state.favorites.splice(index, 1);
+                favBtn.classList.remove('btn-secondary');
+                favBtn.classList.add('btn-outline');
+                favBtn.innerHTML = '<span aria-hidden="true">🤍</span> Add to Favorites';
+                favBtn.setAttribute('aria-label', 'Add to favorites');
+                favBtn.setAttribute('aria-pressed', 'false');
+                showNotification('Removed from favorites', 'info');
+                announceToScreenReader('Wallpaper removed from favorites.');
+            } else {
+                state.favorites.push(id);
+                favBtn.classList.remove('btn-outline');
+                favBtn.classList.add('btn-secondary');
+                favBtn.innerHTML = '<span aria-hidden="true">❤️</span> Favorited';
+                favBtn.setAttribute('aria-label', 'Remove from favorites');
+                favBtn.setAttribute('aria-pressed', 'true');
+                showNotification('Added to favorites!', 'success');
+                announceToScreenReader('Wallpaper added to favorites.');
+            }
+            saveFavorites();
+        }
+
+        function toggleShareMenu() {
+            const shareMenu = $('#share-menu');
+            const shareBtn = $('#image-modal .btn-outline');
+            const isExpanded = shareBtn.getAttribute('aria-expanded') === 'true' || false;
+            
+            if (isExpanded) {
+                shareMenu.classList.remove('active');
+            } else {
+                shareMenu.classList.add('active');
+            }
+            shareBtn.setAttribute('aria-expanded', !isExpanded);
+            state.shareMenuOpen = !isExpanded;
+        }
+
+        // Social Share Functions
+        const shareWallpaper = (platform) => {
+            if (!state.currentModal) return;
+            const url = encodeURIComponent(state.currentModal.url);
+            const text = encodeURIComponent(`Check out this amazing pet wallpaper from Pet Wallpaper Paradise! Title: ${state.currentModal.title}`);
+            const base = window.location.origin;
+
+            let shareUrl;
+            switch(platform) {
+                case 'facebook': shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${base}`; break;
+                case 'twitter': shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${base}`; break;
+                case 'whatsapp': shareUrl = `https://api.whatsapp.com/send?text=${text}%20${base}`; break;
+                case 'linkedin': shareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${base}&title=${encodeURIComponent('Pet Wallpaper Paradise')}&summary=${text}`; break;
+                case 'telegram': shareUrl = `https://t.me/share/url?url=${base}&text=${text}`; break;
+                case 'pinterest': shareUrl = `https://pinterest.com/pin/create/button/?url=${base}&media=${url}&description=${text}`; break;
+                case 'reddit': shareUrl = `https://www.reddit.com/submit?url=${base}&title=${text}`; break;
+                case 'email': shareUrl = `mailto:?subject=${encodeURIComponent('Check out this amazing pet wallpaper!')}&body=${text}%0A${base}`; break;
+                default: return;
+            }
+
+            window.open(shareUrl, '_blank', 'noopener,noreferrer');
+            toggleShareMenu();
+        };
+
+        const shareToFacebook = () => shareWallpaper('facebook');
+        const shareToTwitter = () => shareWallpaper('twitter');
+        const shareToWhatsApp = () => shareWallpaper('whatsapp');
+        const shareToLinkedIn = () => shareWallpaper('linkedin');
+        const shareToTelegram = () => shareWallpaper('telegram');
+        const shareToPinterest = () => shareWallpaper('pinterest');
+        const shareToReddit = () => shareWallpaper('reddit');
+        const shareViaEmail = () => shareWallpaper('email');
+
+        function copyToClipboard() {
+            if (!state.currentModal) return;
+            navigator.clipboard.writeText(state.currentModal.url).then(() => {
+                showNotification('Link copied to clipboard!', 'success');
+            }).catch(err => {
+                showNotification('Failed to copy link.', 'error');
+                console.error('Failed to copy text: ', err);
+            });
+            toggleShareMenu();
+        }
+
+        // Notification System
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <span>${message}</span>
+                <button aria-label="Close notification" onclick="this.parentElement.remove()">&times;</button>
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+
+        // Other UI Functions
+        function toggleMobileMenu() {
+            const nav = $('#nav');
+            const btn = $('.mobile-menu');
+            const isExpanded = btn.getAttribute('aria-expanded') === 'true' || false;
+            if (isExpanded) {
+                nav.classList.remove('active');
+            } else {
+                nav.classList.add('active');
+            }
+            btn.setAttribute('aria-expanded', !isExpanded);
+        }
+        
+        function cycleLogo() {
+            const logo = $('#main-logo');
+            const icons = ['🐾', '🐱', '🐶'];
+            let currentIcon = logo.querySelector('.icon-content').textContent.trim();
+            const currentIndex = icons.indexOf(currentIcon);
+            const nextIndex = (currentIndex + 1) % icons.length;
+            logo.querySelector('.icon-content').textContent = icons[nextIndex];
+        }
+
+        const handleSearchInput = debounce((e) => {
+            const query = e.target.value;
+            searchWallpapers(query);
+        }, 300);
+
+        // Initialization
+        window.onload = () => {
+            initializeFavorites();
+            loadInitialWallpapers();
+            
+            // Add event listeners for filters
+            $$('.filter-btn').forEach(btn => btn.addEventListener('click', handleFilterClick));
+
+            // Add event listener for search input
+            $('#search-input').addEventListener('input', handleSearchInput);
+            
+            // Handle header scroll
+            window.addEventListener('scroll', () => {
+                const header = $('header');
+                if (window.scrollY > 50) {
+                    header.classList.add('scrolled');
+                } else {
+                    header.classList.remove('scrolled');
+                }
+            });
+        };
     </script>
 </body>
 </html>
